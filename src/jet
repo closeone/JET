@@ -365,6 +365,12 @@ RestoreP4() {
         PrintLog "Exiting RestoreP4()\n"
 }
 
+P12Only() {
+	PrintBoth "**HBOOT Downgrade Only Mode**\n\n"
+            CheckBrick
+            FlashP12
+	exit 0    
+}
 
 BackupOnly() {
     PrintBoth "**Backup Only Mode**\n\n"
@@ -527,6 +533,7 @@ DisplayHelp() {
 	PrintScreen "   -b, --backup          Backup P4 and generate failsafe P4 only.  (No QDL force)\n"
 	PrintScreen "   -c, --cidpreserve     Do not apply SuperCID mod to backup P4 file\n"
 	PrintScreen "   -d, --detect          Detect eMMC partitions in QDL mode\n"
+	PrintScreen "   -f, --flashhboot      Downgrade HBOOT only\n"
 	PrintScreen "   -h, --help            Print this help and exit\n"
 	PrintScreen "   -i, --interactive     Interactive HBOOT Downgrade (Default)\n"
 	PrintScreen "   -k, --kill            Kill P4 to force QDL mode (Be careful with this.)\n"
@@ -557,6 +564,7 @@ for opt ; do
                 -b | --backup) mode=BackupOnly;;
                 -c | --cidpreserve) superCID=0;;
                 -d | --detect) mode=CheckBrick;;
+                -f | --flashhboot) mode=P12Only;;
                 -k | --kill) mode=Brick;;
                 -q | --quiet) verbose=0;;
                 -r | --recover) mode=Recover;;
