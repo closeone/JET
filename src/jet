@@ -23,10 +23,10 @@
 #  ===  Variables  ===  #
 #########################
 
-version="0.3beta"
+version="0.3.3beta"
 logfile="logfile.txt"   # Unset to disable logging.  NOT RECOMMENDED
 verbose=1               # Interactive, On by default
-superCID=1				# Apply SuperCID mod during downgrade, On by default
+superCID=1              # Apply SuperCID mod during downgrade, On by default
 
 #################################
 #  ===  Utility Functions  ===  #
@@ -78,7 +78,7 @@ Init() {
 			exit 1;
 		fi
 	fi
-	PrintLog "HTC EVO 4G LTE HBOOT Downgrade Tool v$version\n"
+	PrintLog "JET - Jewel/Evita Toolkit v$version\n"
 	PrintLog "$(date)\n"
 	PrintLog "$(uname -a)\n"
 
@@ -172,13 +172,15 @@ CheckBrick() {				# QDL device detection
 
 	timeout=0
 	tries=0
-	while [ tries != 3 ]
+
+	PrintBoth "Waking Device...\n\n"
+	WakeQDL
+
+	while [ $tries != 3 ]
 	do
-		PrintBoth "Waking Device...\n\n"
-		WakeQDL
 		
-		dwatch=`dmesg | tail -5 | grep "<" | awk '{print $2}' | sed s/":"//`
-		
+		dwatch=`dmesg | tail -10 | grep "<" | sed s/"\["// | awk '{print $2}' | sed s/":"//`
+				
 		if [ ${#dwatch} = 3 ]; then
 			case $dwatch in
 				sd*) break ;;
@@ -186,12 +188,14 @@ CheckBrick() {				# QDL device detection
 		fi
 		timeout=$(($timeout+1))
 		if [ $timeout = 1000 ]; then
-			Printboth "Timeout.  Retrying..."
-			tries=$(($tries+1+))
+			PrintBoth "Timeout.  Retrying...\n"
+			WakeQDL
+			tries=$(($tries+1))
+			timeout=0
 		fi
 	done
 
-	if [ tries = 3 ]; then
+	if [ $tries = 3 ]; then
 		PrintBoth "Cannot find emmc partitons.  Exiting...\n\n"
 		exit 1
 	fi
@@ -288,31 +292,6 @@ BackupP4() {
 
 	./adb shell dd if=/dev/block/mmcblk0p4 of=/sdcard/bakp4 > /dev/null		#  Copy P4 data to internal storage
 
-	#  Redundant since we check for local bakp4 before continuing.  Save for --recover option
-
-	#sdstatus=`./adb shell "if [ -e /sdcard/bakp4 ]; then  echo 1; fi`		#  Check for successful file creation on internal storage
-	#if [ "$sdstatus" != "1" ]; then
-	#	printf  "FATAL:  Failure to create mmcblk0p4 backup on internal storage (/sdcard).\n\n"
-	#	exit 1
-	#fi
-	# 
-	#
-	#./adb shell dd if=/dev/block/mmcblk0p4 of=/sdcard2/bakp4 > /dev/null  				#  Copy P4 data to external storage
-	#
-	#sdstatus=`./adb shell "if [ -e /sdcard2/bakp4 ]; then  echo 1; fi`				#  Check that SD Card Backup was made
-	#if [ "$sdstatus" != "1" ]; then
-	#	printf  "WARNING: A backup of your Partition 4 was not made on the SD Card.\n"
-	#	printf  "Is an SD Card in your phone? Is it full?\n"
-	#	printf  "It's recommended that a backup is made on an SD Card.\n\n"
-	#	printf  "You can continue without making a backup, but it's a good idea.\n"
-	#	
-	#	SDBackup(){
-	#	printf  "Continue without SD Card backup?"
-	#	GetYN
-	#	}
-	#
-	#rm sdstatus
-
 	./adb pull /sdcard/bakp4 ./bakp4  2> /dev/null							#  Pull file from internal storage to local machine
 
 	if [ ! -e ./bakp4 ]; then	
@@ -343,12 +322,6 @@ BackupP4() {
 KillP4() {
         PrintLog "In KillP4()\n"
 	./adb push ./killp4 /sdcard > /dev/null					# Load corrupt p4 file onto internal storage
-
-	#loadedkill = `./adb shell "if [ -e /sdcard/killp4 ]; then echo 1; fi"`
-	#if [ $loadedkill != 1 ]; then
-	#	printf  "FATAL:  Unable to load corrupt mmcblk0p4 file onto internal storage.\n\n"
-	#	exit 1
-	#fi
 
 	./adb shell "dd if=/sdcard/killp4 of=/dev/block/mmcblk0p4" > /dev/null		# Flash corrupt p4 file
 	./adb shell "rm /sdcard/killp4"	 > /dev/null								# Clean up
@@ -523,9 +496,7 @@ Interactive() {
 	PrintScreen  "The final step is restoring your backup /dev/block/mmcblk0p4./n/n"
 	PrintScreen  "Once again, if this process hangs at \"Waiting for /dev/"$brickdrive"4...\"\n"
 	PrintScreen  "Press and hold the power button on your phone for no less than 30 seconds and\n"
-	PrintScreen  "then release it.  The process should wake back up a few seconds afterwards.\n\n"
-	PrintScreen  "If this process fails to complete you will need to complete the manual steps\n"
-	PrintScreen  "using the post on XDA.  In that case, your bricked phone should be\n"
+	PrintScreen  "then release it.  If you need to perform manual recovery, your bricked phone should be\n"
 	PrintScreen  "accessible at /dev/$brickdrive\n\n"
 
 	RestoreP4
@@ -542,13 +513,12 @@ Interactive() {
 
 
 DisplayHelp() {
-	PrintScreen "Invalid command line argument specified.\n\n"
 	PrintScreen "Usage:  jet [options]\n\n"
 	PrintScreen "   -b, --backup          Backup P4 and generate failsafe P4 only.  (No QDL force)\n"
 	PrintScreen "   -c, --cidpreserve     Do not apply SuperCID mod to backup P4 file\n"
 	PrintScreen "   -d, --detect          Detect eMMC partitions in QDL mode\n"
 	PrintScreen "   -h, --help            Print this help and exit\n"
-	PrintScreen "   -i, --interactive     Interactive HBOOT Downgrade (Default)"
+	PrintScreen "   -i, --interactive     Interactive HBOOT Downgrade (Default)\n"
 	PrintScreen "   -k, --kill            Kill P4 to force QDL mode (Be careful with this.)\n"
 	PrintScreen "   -q, --quiet           Suppress all display output\n"
 	PrintScreen "   -r, --recover         Downgrade HBOOT and load existing backup P4\n"
@@ -566,23 +536,26 @@ DisplayHelp() {
 #  ===  Main  ===  #
 ####################
 
-clear
-PrintScreen "JET - Jewel/Evita Tool"kit" v$version\n\n"
+#clear
+PrintScreen "JET - Jewel/Evita Toolkit v$version\n\n"
 
 mode=Interactive
+PrintLog "cmdline args: "
 for opt ; do
+        PrintLog " $opt\n"
         case $opt in
-        -b | --backup) mode=BackupOnly;;
-		-c | --cidpreserve) superCID=0;;
-		-d | --detect) mode=CheckBrick;;
-		-k | --kill) mode=Brick;;
-		-q | --quiet) verbose=0;;
-		-r | --recover) mode=Recover;;
-		-s | --supercid) mode=SuperCID;;
-		-u | --unbrick) mode=Unbrick;;
-		-v | --verbose) verbose=1;;
-		*) DisplayHelp;;                  # handles -h, --help and any undefined args
-	esac
+                -b | --backup) mode=BackupOnly;;
+                -c | --cidpreserve) superCID=0;;
+                -d | --detect) mode=CheckBrick;;
+                -k | --kill) mode=Brick;;
+                -q | --quiet) verbose=0;;
+                -r | --recover) mode=Recover;;
+                -s | --supercid) mode=SuperCID;;
+                -u | --unbrick) mode=Unbrick;;
+                -v | --verbose) verbose=1;;
+                -h | --help) DisplayHelp;;
+                *) { PrintScreen "Invalid argument: $opt\n"; DisplayHelp; };;
+        esac
 done 
 
 Init
