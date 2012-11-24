@@ -71,6 +71,9 @@ GetYN() {
 
 
 Init() {
+        if [ $verbose = 1 ]; then
+            PrintScreen "JET - Jewel/Evita Toolkit v$version\n\n"
+        fi
         #  Logging
 	if [ ! -e $logfile ]; then
 	        if ! touch $logfile ; then 
@@ -402,6 +405,7 @@ Recover() {
 }
 
 
+
 Unbrick() {
 	PrintBoth "**Unbrick Mode**\n\n"
 	CheckBrick
@@ -554,7 +558,7 @@ DisplayHelp() {
 ####################
 
 #clear
-PrintScreen "JET - Jewel/Evita Toolkit v$version\n\n"
+
 
 mode=Interactive
 PrintLog "cmdline args: "
