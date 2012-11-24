@@ -263,7 +263,7 @@ BackupP4() {
 	if [ $superCID = 0 ]; then
 		PrintBoth "**SuperCID mode is OFF**\n"
 	fi
-	PrintBoth "Backing up mmcblk0p4 to /sdcard/bak4\n"
+	PrintBoth "Backing up mmcblk0p4 to /sdcard/bakp4\n"
 	PrintBoth  "Rebooting to bootloader...\n\n"
 
 	./adb reboot bootloader
@@ -423,7 +423,11 @@ Unbrick() {
 Brick() {
         PrintBoth "**Brick Mode**\n\n"
         PrintScreen "This will force QDL mode.  You need a backup P4 file!!  Are you SURE?\n"
-	GetYN
+	# If quiet, default to yes without user interaction
+        if [ $verbose = 1 ]; then
+        GetYN
+        fi
+        
 	if [ ! -e ./bakp4 ]; then	
 		PrintBoth "*** WARNING: NO backup p4 file \($PWD/bakp4\) found! ***\n"
 		PrintScreen "Creating backup now..."
